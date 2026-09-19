@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Friday Scan</title>
+<style>
+:root{
+  --ink:#0F151C; --panel:#18212B; --panel2:#1E2934; --line:#2B3945;
+  --text:#DDE5EC; --dim:#8496A6; --faint:#5A6C7C;
+  --brass:#C9A227; --brass-dim:#8A7020;
+  --rust:#B4552D; --sea:#3E8A85; --red:#C4483C;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;background:var(--ink);color:var(--text)}
+body{
+  font-family:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+  font-size:15px;line-height:1.5;
+  font-variant-numeric:tabular-nums;
+  padding-bottom:80px;
+}
+h1,h2,h3{margin:0;font-weight:650;letter-spacing:-.01em}
+button{font-family:inherit;font-size:15px;cursor:pointer;border:none}
+input,select{font-family:inherit;font-size:15px}
+
+header{
+  padding:18px 16px 14px;border-bottom:1px solid var(--line);
+  display:flex;align-items:baseline;justify-content:space-between;gap:12px;
+}
+header h1{font-size:19px}
+header .when{font-size:12px;color:var(--faint)}
+
+nav{
+  display:flex;overflow-x:auto;border-bottom:1px solid var(--line);
+  background:var(--ink);position:sticky;top:0;z-index:20;
+  scrollbar-width:none;
+}
+nav::-webkit-scrollbar{display:none}
+nav button{
+  background:none;color:var(--dim);padding:12px 15px;white-space:nowrap;
+  border-bottom:2px solid transparent;font-size:14px;
+}
+nav button.on{color:var(--brass);border-bottom-color:var(--brass)}
+
+main{padding:16px}
+.view{display:none}
+.view.on{display:block}
+
+.verdict{
+  padding:26px 20px;border:1px solid var(--line);border-radius:3px;
+  background:var(--panel);margin-bottom:16px;
+}
+.verdict .big{font-size:26px;font-weight:650;letter-spacing:-.02em;line-height:1.25}
+.verdict .sub{color:var(--dim);font-size:14px;margin-top:8px}
+.verdict.fired{border-left:3px solid var(--brass)}
+
+.card{
+  background:var(--panel);border:1px solid var(--line);border-radius:3px;
+  padding:15px;margin-bottom:12px;
+}
+.card.sig{border-left:3px solid var(--brass)}
+.card.exit{border-left:3px solid var(--rust)}
+.card h3{font-size:17px;margin-bottom:3px}
+.card .strat{font-size:12px;color:var(--dim);margin-bottom:12px}
+
+.grade{
+  display:inline-block;width:22px;height:22px;line-height:22px;text-align:center;
+  border-radius:2px;font-size:13px;font-weight:700;margin-left:8px;vertical-align:2px;
+}
+.gA{background:var(--brass);color:#151515}
+.gB{background:var(--brass-dim);color:#E8DFC0}
+.gC{background:var(--line);color:var(--dim)}
+
+.rows{border-top:1px solid var(--line);margin-top:12px;padding-top:10px}
+.row{display:flex;justify-content:space-between;padding:4px 0;font-size:14px}
+.row span:first-child{color:var(--dim)}
+.row b{font-weight:600}
+.pos{color:var(--sea)}.neg{color:var(--rust)}
+
+.btn{
+  background:var(--brass);color:#141414;padding:13px 18px;border-radius:3px;
+  font-weight:650;width:100%;margin-bottom:10px;
+}
+.btn:active{opacity:.85}
+.btn.ghost{background:none;border:1px solid var(--line);color:var(--text);font-weight:500}
+.btn.warn{background:none;border:1px solid var(--rust);color:var(--rust);font-weight:500}
+.btn:disabled{opacity:.4}
+
+label{display:block;font-size:13px;color:var(--dim);margin:12px 0 5px}
+input[type=text],input[type=number],input[type=date],select,textarea{
+  width:100%;background:var(--ink);border:1px solid var(--line);color:var(--text);
+  padding:11px;border-radius:3px;
+}
+textarea{min-height:120px;font-size:12px;line-height:1.45}
+
+.bar{height:3px;background:var(--line);border-radius:2px;overflow:hidden;margin:12px 0}
+.bar i{display:block;height:100%;background:var(--brass);transition:width .3s}
+.note{font-size:13px;color:var(--dim);margin:10px 0}
+.warn-box{border-left:3px solid var(--rust);background:var(--panel);padding:12px 14px;
+  border-radius:3px;font-size:13px;margin-bottom:12px}
+.empty{text-align:center;color:var(--faint);padding:44px 20px;font-size:14px}
+
+.tick{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:11px 0;border-bottom:1px solid var(--line);font-size:14px;
+}
+.tick .sect{color:var(--faint);font-size:12px}
+.tick button{background:none;color:var(--rust);font-size:13px;padding:4px 8px}
+.stat{color:var(--dim);font-size:12px}
+
+.log{
+  padding:12px 0;border-bottom:1px solid var(--line);font-size:13px;
+}
+.log .top{display:flex;justify-content:space-between;margin-bottom:3px}
+.log .dt{color:var(--faint);font-size:12px}
+.log .det{color:var(--dim);font-size:12px;margin-top:3px}
+.mono{font-size:12px;color:var(--faint)}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Friday Scan</h1>
+  <div class="when" id="lastScan">never run</div>
+</header>
+
+<nav>
+  <button class="on" data-v="scan">Scan</button>
+  <button data-v="position">Position</button>
+  <button data-v="signals">Signals</button>
+  <button data-v="trades">Trades</button>
+  <button data-v="report">Report</button>
+  <button data-v="pool">Pool</button>
+  <button data-v="data">Data</button>
+</nav>
+
+<main>
+
+<!-- SCAN -->
+<section class="view on" id="v-scan">
+  <div id="reviewFlag"></div>
+  <div id="verdict" class="verdict">
+    <div class="big">Not scanned yet</div>
+    <div class="sub">Run this after Friday's close. Takes about 6 minutes.</div>
+  </div>
+  <button class="btn" id="runScan">Run scan</button>
+  <div id="progress"></div>
+  <div id="results"></div>
+</section>
+
+<!-- POSITION -->
+<section class="view" id="v-position">
+  <div id="posBody"></div>
+</section>
+
+<!-- SIGNALS -->
+<section class="view" id="v-signals">
+  <div id="sigBody"></div>
+</section>
+
+<!-- TRADES -->
+<section class="view" id="v-trades">
+  <div id="tradeBody"></div>
+</section>
+
+<!-- REPORT -->
+<section class="view" id="v-report">
+  <div id="reportBody"></div>
+</section>
+
+<!-- POOL -->
+<section class="view" id="v-pool">
+  <div class="note" id="poolCount"></div>
+  <label>Add ticker</label>
+  <input type="text" id="newTick" placeholder="AMD" maxlength="6">
+  <label>Sector</label>
+  <select id="newSect">
+    <option>Tech</option><option>Energy</option><option>Financials</option>
+    <option>Healthcare</option><option>Industrials</option><option>Consumer</option>
+    <option>Materials</option><option>Utilities</option><option>Real Estate</option>
+    <option>Communications</option>
+  </select>
+  <button class="btn ghost" id="addTick" style="margin-top:12px">Add to pool</button>
+  <div id="poolList"></div>
+  <h3 style="margin:28px 0 6px;font-size:15px">Twice-yearly review</h3>
+  <div class="note" id="reviewGuide"></div>
+</section>
+
+<!-- DATA -->
+<section class="view" id="v-data">
+  <label>Alpha Vantage API key</label>
+  <input type="text" id="apiKey" placeholder="paste key">
+  <button class="btn ghost" id="saveKey" style="margin-top:12px">Save key</button>
+
+  <div class="note" id="callInfo" style="margin-top:14px"></div>
+  <button class="btn ghost" id="resetDay">Reset today's counter</button>
+  <div class="note">Use this only if a scan was interrupted and you're sure you
+    have calls left. It clears the completed-ticker list so the next scan starts over.</div>
+
+  <h3 style="margin:28px 0 4px;font-size:15px">Backup</h3>
+  <div class="note">Everything lives in this browser. Export before clearing site data or switching phones.</div>
+  <button class="btn ghost" id="exportBtn">Copy backup to clipboard</button>
+  <label>Restore from backup</label>
+  <textarea id="importBox" placeholder="paste backup JSON"></textarea>
+  <button class="btn ghost" id="importBtn" style="margin-top:10px">Restore</button>
+
+  <h3 style="margin:28px 0 4px;font-size:15px">Rules in force</h3>
+  <div class="note" id="rulesText"></div>
+</section>
+
+</main>
+
+<script>
+/* ---------- storage ---------- */
+const DEF={apiKey:"",pool:[],position:null,signals:[],trades:[],lastScan:null,
+  lastReview:null,tickerStats:{},cache:{},lastResults:null,shadows:[],
+  earnings:{},earningsFetched:null,earningsOK:null,diagHistory:[],
+  callDay:null,callCount:0,scanDone:[],rulesSince:"2026-09-08T00:00:00.000Z"};
+let S=JSON.parse(JSON.stringify(DEF));
+let memOnly=false;
+
+function load(){
+  try{
+    const r=localStorage.getItem("swingWatcher");
+    if(r) S=Object.assign(JSON.parse(JSON.stringify(DEF)),JSON.parse(r));
+  }catch(e){memOnly=true}
+}
+function save(){
+  try{localStorage.setItem("swingWatcher",JSON.stringify(S))}catch(e){memOnly=true}
+}
+
+/* ---------- defaults ---------- */
+const SEED=[
+  ["CRWD","Tech"],["ORCL","Tech"],["NOW","Tech"],["AMD","Tech"],["MU","Tech"],
+  ["COIN","Tech"],["PLTR","Tech"],["SNOW","Tech"],
+  ["FANG","Energy"],["DVN","Energy"],["SLB","Energy"],
+  ["GS","Financials"],["SCHW","Financials"],["COF","Financials"],
+  ["LLY","Healthcare"],["ISRG","Healthcare"],["VRTX","Healthcare"],
+  ["CAT","Industrials"],["ETN","Industrials"],["URI","Industrials"],
+  ["CMG","Consumer"],["LULU","Consumer"],["DKNG","Consumer"],
+  ["FCX","Materials"],["NUE","Materials"]
+];
+
+/* ---------- engine constants ---------- */
+const CFG={
+  maTrend:40, maPull:10, atrLen:14, lookback:20,
+  pullbackMin:0.08,       // dip at least this far below 20wk high
+  pullbackMax:0.25,       // but no more — beyond this it's a collapse, not a pullback
+  maxBelowHigh:0.15,      // current close must be within this of the 20wk high
+  minVolRatio:1.0,        // reclaim must trade at or above average volume
+  pullbackWindow:5,       // weeks to find the dip
+  igniteRange:1.5,        // x avg range
+  igniteClosePct:0.80,    // close in top 20% of range
+  igniteVol:1.5,          // x avg volume
+  restMaxRange:0.50,      // x igniting range
+  targetR:2,
+  timeStopWeeks:12,
+  spikePct:0.20, spikeWeeks:3,
+  reviewWeeks:26,
+  earnBlackoutDays:14,    // no new entry if earnings this close
+  earnExitDays:7          // flag exit if holding into earnings
+};
+
+/* ---------- math ---------- */
+const sma=(a,n,i)=>{if(i+n>a.length)return null;let s=0;for(let k=i;k<i+n;k++)s+=a[k];return s/n};
+
+function atr(bars,n,i){
+  if(i+n+1>bars.length)return null;
+  let s=0;
+  for(let k=i;k<i+n;k++){
+    const b=bars[k],p=bars[k+1];
+    s+=Math.max(b.h-b.l,Math.abs(b.h-p.c),Math.abs(b.l-p.c));
+  }
+  return s/n;
+}
+
+/* ---------- split detection ----------
+   bars[0] is newest. Walk older; if close jumps by a
+   split-like ratio, back-adjust everything older. */
+function fixSplits(bars){
+  const F=[2,3,4,5,10,20];
+  let mult=1, found=[];
+  for(let i=0;i<bars.length-1;i++){
+    const newer=bars[i].c, older=bars[i+1].c;
+    if(!newer||!older)continue;
+    const r=older/newer;
+    for(const f of F){
+      if(Math.abs(r-f)/f<0.06){ found.push({i:i+1,f}); break; }
+      if(Math.abs(r-1/f)*f<0.06){ found.push({i:i+1,f:1/f}); break; }
+    }
+  }
+  if(!found.length)return{bars,splits:[]};
+  const out=bars.map(b=>({...b}));
+  let cum=1, ptr=0;
+  for(let i=0;i<out.length;i++){
+    while(ptr<found.length&&found[ptr].i===i){cum*=found[ptr].f;ptr++}
+    if(cum!==1){
+      out[i].o/=cum; out[i].h/=cum; out[i].l/=cum; out[i].c/=cum; out[i].v*=cum;
+    }
+  }
+  return{bars:out,splits:found.map(f=>({date:bars[f.i].d,ratio:f.f}))};
+}
+
+/* ---------- indicators ---------- */
+function indicators(bars){
+  const closes=bars.map(b=>b.c);
+  const ma40=sma(closes,CFG.maTrend,0);
+  const ma10=sma(closes,CFG.maPull,0);
+  const ma40p=sma(closes,CFG.maTrend,1);
+  const a=atr(bars,CFG.atrLen,0);
+  const win=bars.slice(0,CFG.lookback);
+  const hi=Math.max(...win.map(b=>b.h));
+  const avgVol=win.reduce((s,b)=>s+b.v,0)/win.length;
+  const avgRange=win.reduce((s,b)=>s+(b.h-b.l),0)/win.length;
+  return{ma40,ma10,ma40p,atr:a,hi20:hi,avgVol,avgRange};
+}
+
+/* ---------- strategy A: pullback ---------- */
+function pullback(bars,I,D){
+  const stop=r=>{if(D)D.pullback[r]=(D.pullback[r]||0)+1;return null};
+  if(!I.ma40||!I.ma10||!I.atr)return stop("not enough history");
+  const now=bars[0];
+  if(!(now.c>I.ma40))return stop("below 40wk MA");
+  if(!(I.ma10>I.ma40))return stop("10wk not above 40wk");
+
+  let dipLow=Infinity,touched=false;
+  for(let i=1;i<=CFG.pullbackWindow&&i<bars.length;i++){
+    if(bars[i].l<dipLow)dipLow=bars[i].l;
+    if(bars[i].l<=I.ma10)touched=true;
+  }
+  if(!touched)return stop("no dip to 10wk MA");
+  const depth=(I.hi20-dipLow)/I.hi20;
+  if(depth<CFG.pullbackMin)return stop("dip too shallow");
+  if(depth>CFG.pullbackMax)return stop("dip too deep — falling knife");
+  if(!(now.c>I.ma10))return stop("hasn't reclaimed 10wk MA");
+  const belowHigh=(I.hi20-now.c)/I.hi20;
+  if(belowHigh>CFG.maxBelowHigh)return stop("still far below 20wk high");
+
+  const volR=now.v/I.avgVol;
+  if(volR<CFG.minVolRatio)return stop("reclaim on weak volume");
+  // grade
+  let pts=0;
+  if(depth>=0.10&&depth<=0.20)pts++;
+  if(volR>=1.3)pts++;
+  if(now.c>I.ma10*1.02)pts++;
+  if(now.c>now.o)pts++;
+  if(belowHigh<=0.08)pts++;
+  const grade=pts>=4?"A":pts>=3?"B":"C";
+
+  const R=2*I.atr;
+  return{
+    strategy:"Pullback",grade,
+    entry:now.c, R,
+    stop:now.c-R, target:now.c+CFG.targetR*R,
+    detail:`dip ${(depth*100).toFixed(0)}%, now ${(belowHigh*100).toFixed(0)}% under 20wk high, vol ${volR.toFixed(1)}x`
+  };
+}
+
+/* ---------- strategy B: 3-bar play ---------- */
+function threeBar(bars,I,D){
+  const stop=r=>{if(D)D.threebar[r]=(D.threebar[r]||0)+1;return null};
+  if(bars.length<4||!I.ma40)return stop("not enough history");
+  const [c,rest,ign]=[bars[0],bars[1],bars[2]];
+  if(!(c.c>I.ma40))return stop("below 40wk MA");
+
+  const ignRange=ign.h-ign.l;
+  if(ignRange<=0)return stop("bad data");
+  if(!(ignRange>=CFG.igniteRange*I.avgRange))return stop("no wide igniting week");
+  if(!(ign.c>ign.o))return stop("igniting week not green");
+  const closePos=(ign.c-ign.l)/ignRange;
+  if(!(closePos>=CFG.igniteClosePct))return stop("igniting week closed weak");
+  const ignVolR=ign.v/I.avgVol;
+  if(!(ignVolR>=CFG.igniteVol))return stop("igniting volume too low");
+
+  const restRange=rest.h-rest.l;
+  if(!(restRange<=CFG.restMaxRange*ignRange))return stop("rest week too wide");
+  if(!(rest.l>ign.l))return stop("rest week broke below");
+  if(!(rest.h<=ign.h*1.01))return stop("rest week ran too far");
+
+  if(!(c.c>rest.h))return stop("no breakout yet");
+
+  let pts=0;
+  if(closePos>=0.90)pts++;
+  if(ignVolR>=2.0)pts++;
+  if(restRange<=0.35*ignRange)pts++;
+  if(c.v>=I.avgVol)pts++;
+  const grade=pts>=3?"A":pts>=2?"B":"C";
+
+  const R=c.c-rest.l;
+  if(R<=0)return null;
+  return{
+    strategy:"3-Bar Play",grade,
+    entry:c.c, R,
+    stop:rest.l, target:c.c+CFG.targetR*R,
+    detail:`igniting week ${ignVolR.toFixed(1)}x vol, close ${(closePos*100).toFixed(0)}% of range, broke rest high ${rest.h.toFixed(2)}`
+  };
+}
+
+/* ---------- exits ---------- */
+function checkExits(bars,I){
+  const p=S.position; if(!p)return null;
+  const now=bars[0];
+  const out=[];
+  const stop=p.stopRaised?p.entry:p.stop;
+  if(now.c>=p.target)out.push({type:"Target",why:`closed ${now.c.toFixed(2)}, target ${p.target.toFixed(2)}`});
+  if(now.c<=stop)out.push({type:"Stop",why:`closed ${now.c.toFixed(2)}, stop ${stop.toFixed(2)}`});
+  if(I.ma40&&now.c<I.ma40)out.push({type:"Trend lost",why:`closed below 40wk MA (${I.ma40.toFixed(2)})`});
+  const wks=Math.floor((Date.now()-new Date(p.entryDate))/(7*864e5));
+  if(wks>=CFG.timeStopWeeks)out.push({type:"Time",why:`${wks} weeks held, limit ${CFG.timeStopWeeks}`});
+  const earn=S.earnings[p.sym];
+  if(earn){
+    const days=(new Date(earn)-Date.now())/864e5;
+    if(days>=0&&days<=CFG.earnExitDays)
+      out.push({type:"Earnings",why:`reports ${earn}. Daily stops don't protect against a gap — exit before.`});
+  }
+  // spike -> raise stop
+  let spike=false;
+  if(bars.length>CFG.spikeWeeks&&!p.stopRaised){
+    const ago=bars[CFG.spikeWeeks].c;
+    if(now.c>=ago*(1+CFG.spikePct))spike=true;
+  }
+  return{exits:out,spike,close:now.c};
+}
+
+/* ---------- fetch ---------- */
+async function getWeekly(sym){
+  const u=`https://www.alphavantage.co/query?function=TIME_SERIES_WEEKLY&symbol=${sym}&apikey=${S.apiKey}`;
+  const r=await fetch(u);
+  const j=await r.json();
+  if(j.Note||j.Information)throw new Error("rate limit or key problem");
+  const ts=j["Weekly Time Series"];
+  if(!ts)throw new Error("no data for "+sym);
+  const bars=Object.keys(ts).sort().reverse().map(d=>({
+    d, o:+ts[d]["1. open"], h:+ts[d]["2. high"],
+    l:+ts[d]["3. low"], c:+ts[d]["4. close"], v:+ts[d]["5. volume"]
+  }));
+  return bars;
+}
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+
+/* earnings calendar — one call covers every symbol.
+   CSV: symbol,name,reportDate,fiscalDateEnding,estimate,currency */
+async function getEarnings(){
+  try{
+    const u=`https://www.alphavantage.co/query?function=EARNINGS_CALENDAR&horizon=6month&apikey=${S.apiKey}`;
+    const r=await fetch(u);
+    const txt=await r.text();
+    if(txt.trim().startsWith("{")){S.earningsOK=false;return false}
+    const lines=txt.trim().split(/\r?\n/);
+    if(lines.length<2){S.earningsOK=false;return false}
+    const map={};
+    for(let i=1;i<lines.length;i++){
+      const cols=lines[i].split(",");
+      const sym=(cols[0]||"").trim();
+      // company names can contain commas, so find the first ISO date column
+      const dt=cols.find(c=>/^\s*\d{4}-\d{2}-\d{2}\s*$/.test(c));
+      if(sym&&dt){
+        const d=dt.trim();
+        if(!map[sym]||d<map[sym])map[sym]=d;   // keep the soonest
+      }
+    }
+    S.earnings=map;S.earningsFetched=new Date().toISOString();S.earningsOK=true;
+    return true;
+  }catch(e){S.earningsOK=false;return false}
+}
+
+/* ---------- scan ---------- */
+let scanning=false;
+async function runScan(){
+  if(scanning)return;
+  if(!S.apiKey){alert("Add your Alpha Vantage key on the Data tab first.");return}
+  if(!S.pool.length){alert("Add tickers to the pool first.");return}
+  scanning=true;
+  const btn=document.getElementById("runScan");btn.disabled=true;
+  const prog=document.getElementById("progress");
+  const res=document.getElementById("results");
+  res.innerHTML="";
+
+  const list=[...S.pool];
+  if(S.position&&!list.find(t=>t.sym===S.position.sym))list.unshift({sym:S.position.sym,sect:"held"});
+
+  const found=[],problems=[],splits=[];
+  const D={pullback:{},threebar:{},checked:0,trending:0};
+  let exitInfo=null;
+
+  // daily budget reset FIRST — before anything spends a call
+  const today=new Date().toDateString();
+  if(S.callDay!==today){S.callDay=today;S.callCount=0;S.scanDone=[]}
+
+  // earnings calendar refreshes weekly, one call
+  const stale=!S.earningsFetched||(Date.now()-new Date(S.earningsFetched))>6*864e5;
+  if(stale&&S.earningsOK!==false){
+    prog.innerHTML=`<div class="note">Fetching earnings calendar…</div>`;
+    await getEarnings();
+    S.callCount=(S.callCount||0)+1;
+    await wait(13000);
+  }
+
+  const CAP=25;
+
+  for(let i=0;i<list.length;i++){
+    const t=list[i];
+    if(S.scanDone.includes(t.sym)){continue}
+    if(S.callCount>=CAP){
+      problems.push("Daily limit reached — "+(list.length-i)+" tickers left. Run again tomorrow to finish.");
+      break;
+    }
+    S.callCount++;
+    prog.innerHTML=`<div class="bar"><i style="width:${(i/list.length)*100}%"></i></div>
+      <div class="note">${t.sym} — ${i+1} of ${list.length}</div>`;
+    try{
+      let bars=await getWeekly(t.sym);
+      const fx=fixSplits(bars);
+      bars=fx.bars;
+      if(fx.splits.length)splits.push({sym:t.sym,splits:fx.splits});
+      if(bars.length<CFG.maTrend+2){problems.push(t.sym+": not enough history");}
+      else{
+        // drop incomplete current week if today isn't past Friday close
+        const I=indicators(bars);
+        // stats
+        const st=S.tickerStats[t.sym]||{scans:0,trending:0,signals:0};
+        st.scans++;
+        if(I.ma40&&bars[0].c>I.ma40&&I.ma10>I.ma40)st.trending++;
+        if(S.position&&S.position.sym===t.sym){
+          exitInfo=checkExits(bars,I);
+        }
+        // shadow trades: follow every signal we didn't take
+        S.shadows.filter(s=>s.sym===t.sym&&s.open).forEach(s=>{
+          const now=bars[0];
+          s.last=now.c; s.seen=Date.now();
+          const wks=Math.floor((Date.now()-new Date(s.opened))/(7*864e5));
+          let done=null;
+          if(now.c>=s.target)done="Target";
+          else if(now.c<=s.stop)done="Stop";
+          else if(I.ma40&&now.c<I.ma40)done="Trend lost";
+          else if(wks>=CFG.timeStopWeeks)done="Time";
+          if(done){
+            s.open=false;s.result=done;s.exit=now.c;
+            s.rMult=(now.c-s.entry)/s.R;
+            s.closed=new Date().toISOString();
+          }
+        });
+        // signals fire whether or not a slot is open
+        D.checked++;
+        if(I.ma40&&bars[0].c>I.ma40&&I.ma10>I.ma40)D.trending++;
+        const a=pullback(bars,I,D),b=threeBar(bars,I,D);
+        for(const sig of [a,b]){
+          if(!sig)continue;
+          const earn=S.earnings[t.sym];
+          if(earn){
+            const days=(new Date(earn)-Date.now())/864e5;
+            if(days>=0&&days<=CFG.earnBlackoutDays){sig.blocked=`earnings ${earn}`}
+          }
+          found.push({sym:t.sym,sect:t.sect,...sig,date:bars[0].d});
+          st.signals++;
+        }
+        S.tickerStats[t.sym]=st;
+      }
+      S.scanDone.push(t.sym);
+    }catch(e){problems.push(t.sym+": "+e.message)}
+    save();
+    if(i<list.length-1)await wait(13000);   // 5 requests/min ceiling
+  }
+
+  prog.innerHTML="";
+  // retire shadows we've lost price coverage on (ticker dropped from pool)
+  if(D.checked>0){
+    S.shadows.filter(s=>s.open&&s.seen&&(Date.now()-s.seen)>28*864e5).forEach(s=>{
+      s.open=false;s.result="Lost coverage";s.excluded=true;s.closed=new Date().toISOString();
+    });
+  }
+  S.lastScan=new Date().toISOString();
+  if(!S.lastReview)S.lastReview=S.lastScan;
+
+  // tie-break: grade, then alternate strategy
+  const rank={A:0,B:1,C:2};
+  found.sort((x,y)=>rank[x.grade]-rank[y.grade]);
+  found.forEach(f=>{
+    S.signals.unshift({...f,logged:new Date().toISOString(),taken:false});
+    if(!f.blocked&&!S.shadows.find(s=>s.sym===f.sym&&s.open)){
+      S.shadows.unshift({
+        sym:f.sym,strategy:f.strategy,grade:f.grade,
+        entry:f.entry,stop:f.stop,target:f.target,R:f.R,
+        opened:new Date().toISOString(),open:true,last:f.entry
+      });
+    }
+  });
+  S.shadows=S.shadows.slice(0,300);
+  S.signals=S.signals.slice(0,200);
+  S.lastResults={found,problems,splits,exitInfo,diag:D};
+  S.diagHistory=(S.diagHistory||[]);
+  if(D.checked>0)S.diagHistory.unshift({date:S.lastScan,d:D});
+  S.diagHistory=S.diagHistory.slice(0,26);
+  save();
+  renderScan(found,problems,splits,exitInfo,D);
+  renderAll();
+  btn.disabled=false;scanning=false;
+}
+
+function renderScan(found,problems,splits,exitInfo,D){
+  const v=document.getElementById("verdict");
+  const res=document.getElementById("results");
+  let h="";
+
+  if(S.position){
+    if(exitInfo&&exitInfo.exits.length){
+      v.className="verdict fired";
+      v.innerHTML=`<div class="big">Exit ${S.position.sym}</div>
+        <div class="sub">${exitInfo.exits.map(e=>e.type).join(" + ")} — sell Monday</div>`;
+      exitInfo.exits.forEach(e=>{
+        h+=`<div class="card exit"><h3>${e.type}</h3><div class="strat">${e.why}</div></div>`;
+      });
+    }else if(exitInfo&&exitInfo.spike){
+      v.className="verdict fired";
+      v.innerHTML=`<div class="big">${S.position.sym} spiked</div>
+        <div class="sub">Up 20%+ in 3 weeks. Stop moves to breakeven — hold.</div>`;
+      S.position.stopRaised=true;save();
+    }else{
+      v.className="verdict";
+      v.innerHTML=`<div class="big">Holding ${S.position.sym}</div>
+        <div class="sub">No exit condition met${exitInfo?`. Closed ${exitInfo.close.toFixed(2)}`:""}.</div>`;
+    }
+  }else if(found.length){
+    v.className="verdict fired";
+    v.innerHTML=`<div class="big">${found.length} setup${found.length>1?"s":""}</div>
+      <div class="sub">Top-ranked takes the slot. Buy Monday if you want it.</div>`;
+    found.forEach((f,i)=>{
+      h+=`<div class="card sig">
+        <h3>${f.sym}<span class="grade g${f.grade}">${f.grade}</span></h3>
+        <div class="strat">${f.strategy}${f.blocked?" · BLOCKED, "+f.blocked:(S.position?" · logged only, slot full":(i===0?" · takes the slot":" · logged only"))}</div>
+        <div class="note" style="margin:0">${f.detail}</div>
+        <div class="rows">
+          <div class="row"><span>Entry near</span><b>$${f.entry.toFixed(2)}</b></div>
+          <div class="row"><span>Stop</span><b class="neg">$${f.stop.toFixed(2)}</b></div>
+          <div class="row"><span>Target</span><b class="pos">$${f.target.toFixed(2)}</b></div>
+          <div class="row"><span>Risk per share</span><b>$${f.R.toFixed(2)}</b></div>
+        </div>
+        <button class="btn ghost" style="margin-top:12px" onclick="openTrade('${f.sym}')">Log a buy on ${f.sym}</button>
+      </div>`;
+    });
+  }else{
+    v.className="verdict";
+    v.innerHTML=`<div class="big">Nothing fired</div>
+      <div class="sub">No setup met the rules this week. That's the normal answer.</div>`;
+  }
+
+  if(D&&D.checked===0){
+    h+=`<div class="warn-box"><b>Nothing was checked</b><br>
+      Every ticker was already scanned today, or the daily call limit was reached.
+      Wait until tomorrow, or use Reset today's counter on the Data tab.</div>`;
+  }
+  if(D&&D.checked>0&&!found.length){
+    const line=o=>Object.entries(o).sort((a,b)=>b[1]-a[1])
+      .map(([k,v])=>`${k} — ${v}`).join("<br>");
+    h+=`<div class="card"><h3 style="font-size:15px">Why nothing fired</h3>
+      <div class="note" style="margin:6px 0 10px">${D.trending} of ${D.checked} tickers
+        were in an uptrend. Everything below is where the rest stopped.</div>
+      <div class="rows"><div class="row"><span><b>Pullback</b></span><span></span></div></div>
+      <div class="note" style="margin:4px 0">${line(D.pullback)||"—"}</div>
+      <div class="rows"><div class="row"><span><b>3-Bar Play</b></span><span></span></div></div>
+      <div class="note" style="margin:4px 0">${line(D.threebar)||"—"}</div>
+    </div>`;
+  }
+  if(splits.length){
+    h+=`<div class="warn-box"><b>Possible splits detected</b><br>${
+      splits.map(s=>`${s.sym}: ${s.splits.map(x=>`${x.ratio>1?x.ratio+":1":"1:"+(1/x.ratio)} near ${x.date}`).join(", ")}`).join("<br>")
+    }<br><br>History was back-adjusted automatically. Verify before acting on any signal for these names.</div>`;
+  }
+  if(problems.length){
+    h+=`<div class="warn-box"><b>Didn't complete</b><br>${problems.join("<br>")}</div>`;
+  }
+  if(S.earningsOK===false){
+    h+=`<div class="warn-box"><b>No earnings calendar</b><br>
+      That endpoint isn't available on your key, so nothing is being screened for
+      earnings risk. Check reporting dates yourself before buying.</div>`;
+  }else if(S.earningsOK){
+    const unknown=S.pool.filter(t=>!S.earnings[t.sym]).map(t=>t.sym);
+    if(unknown.length){
+      h+=`<div class="warn-box"><b>No confirmed earnings date</b><br>
+        ${unknown.join(", ")}<br><br>
+        These aren't on the calendar yet — which means unconfirmed, not safe.
+        Check the date yourself before buying any of them.</div>`;
+    }
+  }
+  res.innerHTML=h;
+}
+
+/* ---------- trade lifecycle ---------- */
+/* jump to the entry form, prefilled from a signal */
+function openTrade(sym){
+  document.querySelector('nav button[data-v="position"]').click();
+  const sel=document.getElementById("f_sym");
+  if(sel)sel.value=sym;
+  fillFromSignal();
+  window.scrollTo(0,0);
+}
+
+/* prefill stop/target from the matching logged signal */
+function fillFromSignal(){
+  const sym=document.getElementById("f_sym").value;
+  const sig=S.signals.find(s=>s.sym===sym&&!s.taken);
+  const px=parseFloat(document.getElementById("f_price").value);
+  const hint=document.getElementById("f_hint");
+  if(!sig){hint.textContent="No logged signal for that ticker — enter stop and target yourself.";return}
+  hint.textContent=`${sig.strategy}, grade ${sig.grade}. Risk per share $${sig.R.toFixed(2)}.`;
+  if(px>0){
+    document.getElementById("f_stop").value=(px-sig.R).toFixed(2);
+    document.getElementById("f_target").value=(px+CFG.targetR*sig.R).toFixed(2);
+  }else{
+    document.getElementById("f_price").value=sig.entry.toFixed(2);
+    document.getElementById("f_stop").value=sig.stop.toFixed(2);
+    document.getElementById("f_target").value=sig.target.toFixed(2);
+  }
+}
+
+function submitTrade(){
+  const sym=document.getElementById("f_sym").value.trim().toUpperCase();
+  const entry=parseFloat(document.getElementById("f_price").value);
+  const shares=parseFloat(document.getElementById("f_shares").value);
+  const stop=parseFloat(document.getElementById("f_stop").value);
+  const target=parseFloat(document.getElementById("f_target").value);
+  const date=document.getElementById("f_date").value;
+  if(!sym||!entry||entry<=0){alert("Ticker and fill price are required.");return}
+  if(!stop||!target){alert("Stop and target are required. Fill them from the signal or enter your own.");return}
+  const sig=S.signals.find(s=>s.sym===sym&&!s.taken);
+  S.position={
+    sym, strategy:sig?sig.strategy:"Manual",
+    entry, shares:shares||0, stop, target, R:entry-stop,
+    stopRaised:false,
+    entryDate:date?new Date(date+"T12:00:00").toISOString():new Date().toISOString()
+  };
+  if(sig)sig.taken=true;
+  save();renderAll();
+}
+
+function closeTrade(){
+  const p=S.position;if(!p)return;
+  const exit=parseFloat(document.getElementById("x_price").value);
+  const why=document.getElementById("x_why").value;
+  const date=document.getElementById("x_date").value;
+  if(!exit||exit<=0){alert("Enter the price you sold at.");return}
+  S.trades.unshift({
+    sym:p.sym,strategy:p.strategy,entry:p.entry,exit,shares:p.shares,R:p.R,
+    pnl:(exit-p.entry)*(p.shares||0),pct:(exit-p.entry)/p.entry,
+    reason:why,entryDate:p.entryDate,
+    exitDate:date?new Date(date+"T12:00:00").toISOString():new Date().toISOString()
+  });
+  S.position=null;save();renderAll();
+}
+
+/* ---------- renders ---------- */
+function renderPosition(){
+  const el=document.getElementById("posBody");
+  const p=S.position;
+  const today=new Date().toISOString().slice(0,10);
+
+  if(!p){
+    const open=S.signals.filter(s=>!s.taken).slice(0,12);
+    el.innerHTML=`
+      <div class="note">No open position. Log a buy here after you place it in Robinhood.</div>
+      <label>Ticker</label>
+      ${open.length
+        ? `<select id="f_sym" onchange="fillFromSignal()">
+             <option value="">— pick a recent signal —</option>
+             ${open.map(s=>`<option value="${s.sym}">${s.sym} · ${s.strategy} · grade ${s.grade}</option>`).join("")}
+           </select>
+           <label>or type any ticker</label>
+           <input type="text" id="f_manual" placeholder="AMD" maxlength="6"
+             oninput="document.getElementById('f_sym').value=this.value.toUpperCase()">`
+        : `<input type="text" id="f_sym" placeholder="AMD" maxlength="6">`}
+      <div class="note" id="f_hint" style="margin:8px 0 0"></div>
+
+      <label>Price you paid</label>
+      <input type="number" step="0.01" id="f_price" placeholder="0.00" onblur="fillFromSignal()">
+      <label>Shares</label>
+      <input type="number" step="0.0001" id="f_shares" placeholder="1.5">
+      <label>Stop</label>
+      <input type="number" step="0.01" id="f_stop" placeholder="0.00">
+      <label>Target</label>
+      <input type="number" step="0.01" id="f_target" placeholder="0.00">
+      <label>Date bought</label>
+      <input type="date" id="f_date" value="${today}">
+      <button class="btn" style="margin-top:16px" onclick="submitTrade()">Log this buy</button>`;
+    return;
+  }
+
+  const wks=Math.floor((Date.now()-new Date(p.entryDate))/(7*864e5));
+  const stop=p.stopRaised?p.entry:p.stop;
+  const cost=p.entry*(p.shares||0);
+  el.innerHTML=`
+    <div class="card">
+      <h3>${p.sym}</h3>
+      <div class="strat">${p.strategy} · bought ${new Date(p.entryDate).toLocaleDateString()}</div>
+      <div class="rows">
+        <div class="row"><span>Paid</span><b>$${p.entry.toFixed(2)}</b></div>
+        <div class="row"><span>Shares</span><b>${p.shares||"—"}</b></div>
+        <div class="row"><span>Cost</span><b>$${cost.toFixed(2)}</b></div>
+      </div>
+      <div class="rows">
+        <div class="row"><span>Target</span><b class="pos">$${p.target.toFixed(2)}</b></div>
+        <div class="row"><span>Stop${p.stopRaised?" — raised to breakeven":""}</span><b class="neg">$${stop.toFixed(2)}</b></div>
+        <div class="row"><span>Trend exit</span><b>close below 40wk MA</b></div>
+        <div class="row"><span>Time exit</span><b>${Math.max(0,CFG.timeStopWeeks-wks)} weeks left</b></div>
+      </div>
+    </div>
+    <h3 style="margin:24px 0 4px;font-size:15px">Sold it?</h3>
+    <label>Price you sold at</label>
+    <input type="number" step="0.01" id="x_price" placeholder="0.00">
+    <label>Reason</label>
+    <select id="x_why">
+      <option>Target</option><option>Stop</option><option>Trend lost</option>
+      <option>Time</option><option>Earnings</option><option>Manual</option>
+    </select>
+    <label>Date sold</label>
+    <input type="date" id="x_date" value="${today}">
+    <button class="btn warn" style="margin-top:16px" onclick="closeTrade()">Log this sale</button>`;
+}
+
+function renderSignals(){
+  const el=document.getElementById("sigBody");
+  if(!S.signals.length){el.innerHTML=`<div class="empty">No signals logged yet.<br><br>Everything that fires lands here — taken or not.</div>`;return}
+  el.innerHTML=S.signals.map(s=>`
+    <div class="log">
+      <div class="top"><b>${s.sym} <span class="grade g${s.grade}">${s.grade}</span></b>
+        <span class="dt">${new Date(s.logged).toLocaleDateString()}</span></div>
+      <div class="det">${s.strategy} · entry $${s.entry.toFixed(2)} · ${s.taken?"taken":"passed"}</div>
+      <div class="det">${s.detail}</div>
+    </div>`).join("");
+}
+
+function renderTrades(){
+  const el=document.getElementById("tradeBody");
+  if(!S.trades.length){el.innerHTML=`<div class="empty">No closed trades yet.</div>`;return}
+  const wins=S.trades.filter(t=>t.pnl>0).length;
+  const tot=S.trades.reduce((s,t)=>s+t.pnl,0);
+  el.innerHTML=`
+    <div class="card">
+      <div class="rows" style="border:none;margin:0;padding:0">
+        <div class="row"><span>Closed trades</span><b>${S.trades.length}</b></div>
+        <div class="row"><span>Winners</span><b>${wins} of ${S.trades.length}</b></div>
+        <div class="row"><span>Net</span><b class="${tot>=0?'pos':'neg'}">$${tot.toFixed(2)}</b></div>
+      </div>
+    </div>`+
+    S.trades.map(t=>`
+    <div class="log">
+      <div class="top"><b>${t.sym}</b>
+        <b class="${t.pnl>=0?'pos':'neg'}">${t.pnl>=0?"+":""}$${t.pnl.toFixed(2)} (${(t.pct*100).toFixed(1)}%)</b></div>
+      <div class="det">${t.strategy} · ${t.reason} · $${t.entry.toFixed(2)} → $${t.exit.toFixed(2)}</div>
+      <div class="dt">${new Date(t.entryDate).toLocaleDateString()} – ${new Date(t.exitDate).toLocaleDateString()}</div>
+    </div>`).join("");
+}
+
+function renderReport(){
+  const el=document.getElementById("reportBody");
+  const T=S.trades, SH=S.shadows.filter(s=>!s.open&&!s.excluded);
+  const haveDiag=(S.diagHistory||[]).length>=1;
+  if(!T.length&&!SH.length&&!haveDiag){
+    el.innerHTML=`<div class="empty">Nothing to report yet.<br><br>
+      This fills in as scans run and trades close.</div>`;
+    return;
+  }
+
+  const rOf=t=>t.R?(t.exit-t.entry)/t.R:(t.exit-t.entry)/(t.entry-(t.stopAt||t.entry*0.9));
+  const rs=T.filter(t=>t.R).map(t=>(t.exit-t.entry)/t.R);
+  const avgR=rs.length?rs.reduce((a,b)=>a+b,0)/rs.length:null;
+  const wins=T.filter(t=>t.pnl>0).length;
+  const net=T.reduce((s,t)=>s+t.pnl,0);
+
+  const byStrat={},byGrade={},byReason={};
+  T.forEach(t=>{
+    (byStrat[t.strategy]=byStrat[t.strategy]||[]).push(t);
+    (byReason[t.reason]=byReason[t.reason]||[]).push(t);
+  });
+  SH.forEach(s=>{(byGrade[s.grade]=byGrade[s.grade]||[]).push(s)});
+
+  const shWins=SH.filter(s=>s.rMult>0).length;
+  const shAvgR=SH.length?SH.reduce((a,s)=>a+(s.rMult||0),0)/SH.length:null;
+
+  let h=!T.length?"":`<div class="card">
+    <h3 style="font-size:15px">Your trades</h3>
+    <div class="rows" style="border:none;padding-top:6px">
+      <div class="row"><span>Closed</span><b>${T.length}</b></div>
+      <div class="row"><span>Win rate</span><b>${T.length?Math.round(wins/T.length*100):0}%</b></div>
+      <div class="row"><span>Net</span><b class="${net>=0?'pos':'neg'}">${net>=0?"+":""}$${net.toFixed(2)}</b></div>
+      ${avgR!==null?`<div class="row"><span>Average R</span><b class="${avgR>=0?'pos':'neg'}">${avgR.toFixed(2)}R</b></div>`:""}
+    </div>
+    <div class="note" style="margin-top:10px">R is the multiple of what you risked.
+      Above 0.5R average over 20+ trades means the rules are doing something.</div>
+  </div>`;
+
+  if(T.length){
+    h+=`<div class="card"><h3 style="font-size:15px">By strategy</h3><div class="rows" style="border:none;padding-top:6px">`;
+    Object.keys(byStrat).forEach(k=>{
+      const g=byStrat[k], w=g.filter(t=>t.pnl>0).length;
+      const p=g.reduce((s,t)=>s+t.pnl,0);
+      h+=`<div class="row"><span>${k}</span><b>${w}/${g.length} · ${p>=0?"+":""}$${p.toFixed(2)}</b></div>`;
+    });
+    h+=`</div></div>`;
+  }
+
+  if(Object.keys(byReason).length){
+    h+=`<div class="card"><h3 style="font-size:15px">How trades ended</h3><div class="rows" style="border:none;padding-top:6px">`;
+    Object.keys(byReason).forEach(k=>{
+      h+=`<div class="row"><span>${k}</span><b>${byReason[k].length}</b></div>`;
+    });
+    h+=`</div></div>`;
+  }
+
+  if(SH.length){
+    h+=`<div class="card">
+      <h3 style="font-size:15px">Signals you didn't take</h3>
+      <div class="rows" style="border:none;padding-top:6px">
+        <div class="row"><span>Tracked to close</span><b>${SH.length}</b></div>
+        <div class="row"><span>Would have won</span><b>${Math.round(shWins/SH.length*100)}%</b></div>
+        <div class="row"><span>Average R</span><b class="${shAvgR>=0?'pos':'neg'}">${shAvgR.toFixed(2)}R</b></div>
+      </div>
+      <div class="note" style="margin-top:10px">This is the answer to "should I have switched?"
+        If passed signals consistently beat your taken ones, one slot is costing you.</div>
+    </div>`;
+
+    const gr=["A","B","C"].filter(g=>byGrade[g]);
+    if(gr.length>1){
+      h+=`<div class="card"><h3 style="font-size:15px">Does grade predict anything?</h3>
+        <div class="rows" style="border:none;padding-top:6px">`;
+      gr.forEach(g=>{
+        const set=byGrade[g];
+        const a=set.reduce((s,x)=>s+(x.rMult||0),0)/set.length;
+        h+=`<div class="row"><span>Grade ${g} · ${set.length}</span><b class="${a>=0?'pos':'neg'}">${a.toFixed(2)}R</b></div>`;
+      });
+      h+=`</div><div class="note" style="margin-top:10px">If A-grades don't outperform C-grades,
+        the grading thresholds need changing — or grade doesn't matter.</div></div>`;
+    }
+  }
+
+  const DH=S.diagHistory||[];
+  if(DH.length>=1){
+    const agg={pullback:{},threebar:{},checked:0,trending:0,scans:DH.length};
+    DH.forEach(x=>{
+      agg.checked+=x.d.checked||0; agg.trending+=x.d.trending||0;
+      ["pullback","threebar"].forEach(k=>{
+        Object.entries(x.d[k]||{}).forEach(([r,n])=>agg[k][r]=(agg[k][r]||0)+n);
+      });
+    });
+    const top=o=>Object.entries(o).sort((a,b)=>b[1]-a[1]).slice(0,4)
+      .map(([k,v])=>`<div class="row"><span>${k}</span><b>${v}</b></div>`).join("");
+    h+=`<div class="card">
+      <h3 style="font-size:15px">Where signals die</h3>
+      <div class="note" style="margin:6px 0 10px">Across ${agg.scans} completed scans.
+        Tickers were in an uptrend ${agg.checked?Math.round(agg.trending/agg.checked*100):0}% of the time.</div>
+      <div class="rows" style="padding-top:6px"><div class="row"><span><b>Pullback</b></span><span></span></div>${top(agg.pullback)}</div>
+      <div class="rows"><div class="row"><span><b>3-Bar Play</b></span><span></span></div>${top(agg.threebar)}</div>
+      <div class="note" style="margin-top:10px">If one line dominates for months,
+        that threshold is the one to loosen — not the whole strategy.</div>
+    </div>`;
+  }
+
+  // signal frequency
+  const cut=S.rulesSince||"2026-09-08T00:00:00.000Z";
+  const allScans=(S.diagHistory||[]).length;
+  const newScans=(S.diagHistory||[]).filter(x=>x.date&&x.date>=cut).length;
+  const oldScans=allScans-newScans;
+  const newSigs=S.signals.filter(x=>x.logged&&x.logged>=cut).length;
+  const oldSigs=S.signals.length-newSigs;
+  if(allScans>=1){
+    h+=`<div class="card"><h3 style="font-size:15px">Signal rate</h3>
+      <div class="rows" style="padding-top:6px">
+        <div class="row"><span><b>Current rules</b></span><span></span></div>
+        <div class="row"><span>Scans</span><b>${newScans}</b></div>
+        <div class="row"><span>Signals</span><b>${newSigs}</b></div>
+        <div class="row"><span>Per scan</span><b>${newScans?(newSigs/newScans).toFixed(1):"—"}</b></div>
+      </div>
+      ${oldScans>0?`<div class="rows">
+        <div class="row"><span>Before the ${new Date(cut).toLocaleDateString()} tightening</span><span></span></div>
+        <div class="row"><span>Scans / signals</span><b>${oldScans} / ${oldSigs}</b></div>
+      </div>`:""}
+      <div class="note" style="margin-top:10px">Only the current-rules line counts.
+        Under 0.2 per scan means the rules are too tight to ever fill the slot.
+        Over 2 means too loose to mean much. Needs about 10 scans to read.</div>
+    </div>`;
+  }
+
+  const openSh=S.shadows.filter(s=>s.open);
+  if(openSh.length){
+    h+=`<h3 style="margin:24px 0 4px;font-size:15px">Still running (not taken)</h3>`+
+      openSh.map(s=>`<div class="log">
+        <div class="top"><b>${s.sym} <span class="grade g${s.grade}">${s.grade}</span></b>
+          <b class="${s.last>=s.entry?'pos':'neg'}">${((s.last-s.entry)/s.entry*100).toFixed(1)}%</b></div>
+        <div class="det">${s.strategy} · $${s.entry.toFixed(2)} → $${s.last.toFixed(2)}</div>
+      </div>`).join("");
+  }
+
+  el.innerHTML=h;
+}
+
+function renderPool(){
+  const el=document.getElementById("poolList");
+  const bySect={};
+  S.pool.forEach(t=>{(bySect[t.sect]=bySect[t.sect]||[]).push(t)});
+  document.getElementById("poolCount").textContent=
+    `${S.pool.length} tickers. About ${Math.ceil(S.pool.length*13/60)} minutes per scan.`;
+  el.innerHTML=Object.keys(bySect).sort().map(sec=>
+    `<h3 style="margin:20px 0 2px;font-size:14px;color:var(--dim)">${sec} · ${bySect[sec].length}</h3>`+
+    bySect[sec].map(t=>{
+      const st=S.tickerStats[t.sym];
+      const rate=st&&st.scans>3?` · trending ${Math.round(st.trending/st.scans*100)}% of ${st.scans} scans, ${st.signals} signals`:"";
+      const dud=st&&st.scans>=20&&st.trending/st.scans<0.3;
+      return `<div class="tick">
+        <div><b>${t.sym}</b>${dud?' <span style="color:var(--rust);font-size:12px">dud</span>':""}
+          <div class="stat">${st?st.scans+" scans"+rate.replace(" · trending"," · trending"):"not scanned yet"}</div></div>
+        <button onclick="removeTick('${t.sym}')">remove</button>
+      </div>`}).join("")
+  ).join("");
+
+  const due=S.lastReview?Math.floor((Date.now()-new Date(S.lastReview))/(7*864e5)):0;
+  const duds=S.pool.filter(t=>{const s=S.tickerStats[t.sym];return s&&s.scans>=20&&s.trending/s.scans<0.3}).length;
+  document.getElementById("reviewGuide").innerHTML=
+    `Last reviewed ${due} weeks ago. Review at ${CFG.reviewWeeks}.<br><br>
+     <b>Finviz screen to run</b> (finviz.com/screener.ashx, free):<br>
+     Country USA · Market cap +Mid ($2bn) · Average volume over 1M ·
+     Price over $5 · 200-day SMA: price above · 50-day SMA: price above ·
+     Volatility (week): over 3%<br><br>
+     Sort by sector. Pull replacements from sectors where you dropped a name,
+     so the spread stays intact. Currently ${duds} ticker${duds===1?"":"s"} flagged as duds.`;
+}
+
+function renderScanTab(){
+  document.getElementById("lastScan").textContent=
+    S.lastScan?"scanned "+new Date(S.lastScan).toLocaleDateString():"never run";
+  const due=S.lastReview?Math.floor((Date.now()-new Date(S.lastReview))/(7*864e5)):0;
+  document.getElementById("reviewFlag").innerHTML=
+    due>=CFG.reviewWeeks?`<div class="warn-box"><b>Pool review due</b><br>${due} weeks since the last one. Check the Pool tab.</div>`:"";
+}
+
+function renderCallInfo(){
+  const el=document.getElementById("callInfo");if(!el)return;
+  const today=new Date().toDateString();
+  const used=S.callDay===today?(S.callCount||0):0;
+  const done=S.callDay===today?(S.scanDone||[]).length:0;
+  el.innerHTML=`<b>Today:</b> ${used} of 25 calls used · ${done} tickers already scanned.`;
+}
+
+function renderRules(){
+  document.getElementById("rulesText").innerHTML=`
+    Weekly bars only. Current week ignored until Friday closes.<br><br>
+    <b>Pullback</b> — close above 40wk MA, 10wk above 40wk, dipped to the
+    10wk MA within 5 weeks, at least 8% off the 20-week high, closed back above.
+    Stop 2× weekly ATR. Target 2R.<br><br>
+    <b>3-Bar Play</b> — igniting week 1.5× normal range on 1.5× volume closing in
+    the top 20% of its range, a rest week inside it, then a close above the rest
+    week's high. Stop below the rest week. Target 2R.<br><br>
+    <b>Exits</b> — target, stop, close below 40wk MA, or 12 weeks elapsed.
+    A 20% gain in 3 weeks raises the stop to breakeven.<br><br>
+    <b>One position at a time.</b> Highest grade takes the slot. Everything else is logged.`;
+}
+
+function renderAll(){renderCallInfo();renderScanTab();renderPosition();renderSignals();renderTrades();renderReport();renderPool();renderRules()}
+
+/* ---------- pool edits ---------- */
+function removeTick(sym){
+  if(!confirm("Remove "+sym+"?"))return;
+  S.pool=S.pool.filter(t=>t.sym!==sym);save();renderPool();
+}
+document.getElementById("addTick").onclick=()=>{
+  const v=document.getElementById("newTick").value.trim().toUpperCase();
+  if(!v)return;
+  if(S.pool.find(t=>t.sym===v)){alert(v+" is already in the pool.");return}
+  S.pool.push({sym:v,sect:document.getElementById("newSect").value});
+  document.getElementById("newTick").value="";
+  save();renderPool();
+};
+
+/* ---------- data tab ---------- */
+document.getElementById("resetDay").onclick=()=>{
+  S.callDay=null;S.callCount=0;S.scanDone=[];save();renderAll();
+  alert("Counter cleared. The next scan will start from the top.");
+};
+document.getElementById("saveKey").onclick=()=>{
+  S.apiKey=document.getElementById("apiKey").value.trim();save();
+  alert("Key saved.");
+};
+document.getElementById("exportBtn").onclick=()=>{
+  const t=JSON.stringify(S);
+  navigator.clipboard.writeText(t).then(
+    ()=>alert("Backup copied. Paste it somewhere safe."),
+    ()=>{document.getElementById("importBox").value=t;alert("Clipboard blocked — backup is in the box below, copy it manually.")}
+  );
+};
+document.getElementById("importBtn").onclick=()=>{
+  try{
+    const d=JSON.parse(document.getElementById("importBox").value);
+    S=Object.assign(JSON.parse(JSON.stringify(DEF)),d);save();
+    document.getElementById("apiKey").value=S.apiKey||"";
+    renderAll();alert("Restored.");
+  }catch(e){alert("That isn't valid backup JSON.")}
+};
+
+/* ---------- nav ---------- */
+document.querySelectorAll("nav button").forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll("nav button").forEach(x=>x.classList.remove("on"));
+    document.querySelectorAll(".view").forEach(x=>x.classList.remove("on"));
+    b.classList.add("on");
+    document.getElementById("v-"+b.dataset.v).classList.add("on");
+  };
+});
+document.getElementById("runScan").onclick=runScan;
+
+/* ---------- boot ---------- */
+load();
+// drop scan records that never checked anything (pre-fix no-op runs)
+if(S.diagHistory&&S.diagHistory.length){
+  const before=S.diagHistory.length;
+  S.diagHistory=S.diagHistory.filter(x=>x&&x.d&&x.d.checked>0);
+  if(S.diagHistory.length!==before)save();
+}
+if(!S.pool.length)S.pool=SEED.map(([sym,sect])=>({sym,sect}));
+document.getElementById("apiKey").value=S.apiKey||"";
+if(memOnly){
+  document.getElementById("v-data").insertAdjacentHTML("afterbegin",
+    `<div class="warn-box">This browser is blocking local storage, so nothing will
+     survive a refresh. Open the file directly or host it, rather than viewing a preview.</div>`);
+}
+save();renderAll();
+if(S.lastResults){
+  const r=S.lastResults;
+  renderScan(r.found||[],r.problems||[],r.splits||[],r.exitInfo||null,r.diag||null);
+}
+</script>
+</body>
+</html>
